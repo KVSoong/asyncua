@@ -1,0 +1,22 @@
+{
+    "services": {
+        "set_value": {
+            "description": "Write a value to an opcua node.",
+            "fields": {
+                "hub": {
+                    "description": "OPCUA hub name of the node configured in the asyncua section.",
+                    "name": "hub"
+                },
+                "nodeid": {
+                    "description": "Nodeid to be written.",
+                    "name": "nodeid"
+                },
+                "value": {
+                    "description": "Value (single value) to write. Can be int, float, bool, string, byte",
+                    "name": "value"
+                }
+            },
+            "name": "set value"
+        }
+    }
+}
