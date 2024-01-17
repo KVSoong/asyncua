@@ -11,6 +11,6 @@
   "issue_tracker": "https://github.com/KVSoong/asyncua/issues",
   "requirements": ["asyncua==1.0.2"],
   "ssdp": [],
-  "zeroconf": [],
-  "version": "v0.1.0"
+  "version": "v0.1.0",
+  "zeroconf": []
 }
