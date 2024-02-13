@@ -12,14 +12,14 @@ I found an older project which uses the python-opcua, which is deprecated and de
 
 1. Install hacs to your homeassistant if not already installed following the instruction here, https://hacs.xyz/docs/setup/download/
 2. Copy this project directory, https://github.com/KVSoong/asyncua.
-3. Navigate to HACS in HA and select *Integration*.
+3. Navigate to HACS in HA and select _Integration_.
 4. At the top right corner, select the vertical 3 dots and click **Custom repositories**.
 5. Paste the link in the `Repository` input field and select **Integration** for the Categeroy dropdown select.
 6. Click Add to add this repository to your HA.
 7. Once added, you should see this custom repository installed. It should prompt you to restart.
 8. Once restarted, you should be able to connect to a OPCUA server.
 
-## Configure Asyncua Coordinator(**Required**)
+## Configure Asyncua Coordinator
 
 This integration is developed with the option to connect multiple OPCUA servers, as it is commonly used in an industrial environment.
 
@@ -27,11 +27,11 @@ This integration is developed with the option to connect multiple OPCUA servers,
 
    ```yaml
    asyncua:
-     - name: "plc-01"   # Unique name to identify the server. Will be used by the sensors to indicate which server to get the node value.
+     - name: "plc-01" # Unique name to identify the server. Will be used by the sensors to indicate which server to get the node value.
        url: "opc.tcp://localhost:4840/" # URL of the server.
-       scan_interval: 10    # Optional. Interval for coordinator to read from OPCUA. Default is set at 30s.
-       username: admin  # Optional username
-       password: admin  # Optional password
+       scan_interval: 10 # Optional. Interval for coordinator to read from OPCUA. Default is set at 30s.
+       username: admin # Optional username
+       password: admin # Optional password
      - name: "plc-02"
        url: "opc.tcp://localhost2:4840/"
        scan_interval: 10
@@ -42,23 +42,23 @@ This integration is developed with the option to connect multiple OPCUA servers,
 ## Configure Sensor entities(Optional)
 
 1. To add a custom sensor entity, paste the following example into your `configuration.yaml` file and make the necessary changes
-   
+
    ```yaml
    sensor:
-      - platform: asyncua
-        nodes:
-          - name: sensor-01 # Name of the sensor
-            unique_id: sensor-01    # Unique ID of the sensor
-            device_class: temperature   # Device class according to Homeassistant sensors
-            hub: plc-01 # OPCUA unique name defined in the coordinator that serve the data.
-            nodeid: "ns=1;s=3000"   # Node id from OPCUA server
-            unit_of_measurement: °C # Optional unit of measurement.
-          - name: sensor-02
-            unique_id: sensor-02
-            device_class: temperature
-            hub: plc-02
-            nodeid: "ns=1;s=3000"
-            unit_of_measurement: °C
+     - platform: asyncua
+       nodes:
+         - name: sensor-01 # Name of the sensor
+           unique_id: sensor-01 # Unique ID of the sensor
+           device_class: temperature # Device class according to Homeassistant sensors
+           hub: plc-01 # OPCUA unique name defined in the coordinator that serve the data.
+           nodeid: "ns=1;s=3000" # Node id from OPCUA server
+           unit_of_measurement: °C # Optional unit of measurement.
+         - name: sensor-02
+           unique_id: sensor-02
+           device_class: temperature
+           hub: plc-02
+           nodeid: "ns=1;s=3000"
+           unit_of_measurement: °C
    ```
 
 ## Configure Binary Sensor entities(Optional)
@@ -70,15 +70,39 @@ This integration is developed with the option to connect multiple OPCUA servers,
      - platform: asyncua
        nodes:
          - name: "binary-sensor-01" # Desired unique name
-           unique_id: "binary-sensor-01"    # Desired unique_id
-           hub: "plc-01"    # Device class according to Homeassistant binary_sensor
-           nodeid: "ns=1;s=1000"    # Node id from OPCUA server
+           unique_id: "binary-sensor-01" # Desired unique_id
+           hub: "plc-01" # Device class according to Homeassistant binary_sensor
+           nodeid: "ns=1;s=1000" # Node id from OPCUA server
          - name: "binary-sensor-02" # Desired unique name
-           unique_id: "binary-sensor-02"    # Desired unique_id
-           hub: "plc-02"    # Device class according to Homeassistant binary_sensor
-           nodeid: "ns=1;s=1000"    # Node id from OPCUA server
+           unique_id: "binary-sensor-02" # Desired unique_id
+           hub: "plc-02" # Device class according to Homeassistant binary_sensor
+           nodeid: "ns=1;s=1000" # Node id from OPCUA server
    ```
 
 ## Organizing subdirectories for custom sensors and binary_sensor
 
 Will be included in the future.
+
+## Write value to nodes
+
+To write value to a node, a service can be called from **Developer Tools** -> **Services** -> **asyncua: set value**.
+
+1. Ensure that a [asyncua coordinator](#configure-asyncua-coordinator) is defined.
+2. Paste the following code sample in `UI Mode` and make the necessary changes
+
+   ```yaml
+   hub: plc-01
+   nodeid: ns=1;s=1000
+   value: false
+   ```
+
+3. In `YAML Mode`, paste the following code sample and make the necessary changes
+
+   ```yaml
+   service: asyncua.set_value
+   target: {}
+   data:
+     hub: plc-01
+     nodeid: ns=1;s=1000
+     value: false
+   ```
