@@ -235,11 +235,9 @@ class OpcuaHub:
         """Get node variant type automatically and set the value."""
         node = self.client.get_node(nodeid=nodeid)
         node_type = await node.read_data_type_as_variant_type()
-        var = ua.Variant(
-            ua_utils.string_to_val(
-                string=str(value),
-                vtype=node_type,
-            )
+        var = ua_utils.string_to_variant(
+            string=str(value),
+            vtype=node_type,
         )
         await node.write_value(DataValue(var))
         return True
