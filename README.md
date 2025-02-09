@@ -4,6 +4,8 @@ This is an hacs integration using asyncua to connect various industrial PLC to H
 
 I found an older project which uses the python-opcua, which is deprecated and decided to start a new integration using opcua-asyncio.
 
+[![Buy me a beer](https://img.shields.io/badge/Donate-Buy%20me%20a%20beer-yellow?logo=buy-me-a-coffee)](https://buymeacoffee.com/kvsoong)
+
 <br>
 
 ## Table of contents
