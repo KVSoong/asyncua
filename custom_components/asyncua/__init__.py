@@ -220,6 +220,12 @@ class OpcuaHub:
         return get_set_wrapper
 
     @asyncua_wrapper
+    async def get_value(self, nodeid: str) -> Any:
+        """Get node value and return value."""
+        node = self.client.get_node(nodeid=nodeid)
+        return await node.read_value()clear
+
+    @asyncua_wrapper
     async def get_values(self, node_key_pair: dict[str, str]) -> Union[dict, None]:
         """Get multiple node values and return value in zip dictionary format."""
         if not (node_key_pair):
@@ -228,7 +234,7 @@ class OpcuaHub:
             self.client.get_node(nodeid=nodeid) for key, nodeid in node_key_pair.items()
         ]
         vals = await self.client.read_values(nodes=nodes)
-        return dict(zip(node_key_pair.keys(), vals))
+        return dict(zip(node_key_pair.keys(), vals, strict=True))
 
     @asyncua_wrapper
     async def set_value(self, nodeid: str, value: Any) -> bool:
