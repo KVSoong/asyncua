@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Union
+from typing import Any
 
 import voluptuous as vol
 
@@ -65,14 +65,14 @@ async def async_setup_platform(
 
     # Compile coordinators with respective nodes
     for _idx_node, val_node in enumerate(config[CONF_NODES]):
-        if val_node[CONF_NODE_HUB] not in coordinator_nodes.keys():
+        if val_node[CONF_NODE_HUB] not in coordinator_nodes:
             coordinator_nodes[val_node[CONF_NODE_HUB]] = []
         coordinator_nodes[val_node[CONF_NODE_HUB]].append(val_node)
 
     # Compile dictionary of {hub: [node0, node1, ...]}
     for key_coordinator, val_coordinator in coordinator_nodes.items():
         # Get the respective asyncua coordinator
-        if key_coordinator not in hass.data[DOMAIN].keys():
+        if key_coordinator not in hass.data[DOMAIN]:
             raise ConfigEntryError(
                 f"Asyncua hub {key_coordinator} not found. Specify a valid asyncua hub in the configuration."
             )
@@ -104,7 +104,7 @@ class AsyncuaBinarySensor(CoordinatorEntity[AsyncuaCoordinator], BinarySensorEnt
         hub: str,
         node_id: str,
         device_class: Any,
-        unique_id: Union[str, None] = None,
+        unique_id: str | None = None,
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator=coordinator)
