@@ -223,7 +223,7 @@ class OpcuaHub:
     async def get_value(self, nodeid: str) -> Any:
         """Get node value and return value."""
         node = self.client.get_node(nodeid=nodeid)
-        return await node.read_value()clear
+        return await node.read_value()
 
     @asyncua_wrapper
     async def get_values(self, node_key_pair: dict[str, str]) -> Union[dict, None]:
