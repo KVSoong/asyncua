@@ -1,4 +1,5 @@
 """The asyncua integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -21,12 +22,10 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
 )
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     ATTR_NODE_HUB,
@@ -150,8 +149,8 @@ class OpcuaHub:
         hub_manufacturer: str,
         hub_model: str,
         hub_url: str,
-        username: Union[str, None] = None,
-        password: Union[str, None] = None,
+        username: str | None = None,
+        password: str | None = None,
         timeout: float = 4,
     ) -> None:
         """Initialize the OPCUA hub."""
@@ -160,6 +159,7 @@ class OpcuaHub:
         self._username = username
         self._password = password
         self._timeout = timeout
+        self._connected: bool = False
         self.device_info = DeviceInfo(
             configuration_url=hub_url,
             manufacturer=hub_manufacturer,
@@ -180,6 +180,7 @@ class OpcuaHub:
 
         self.packet_count: int = 0
         self.elapsed_time: float = 0
+        self.cache_val: dict[str, Any] = {}
 
     @property
     def hub_name(self) -> str:
@@ -191,6 +192,16 @@ class OpcuaHub:
         """Return opcua hub url."""
         return self._hub_url
 
+    @property
+    def connected(self) -> bool:
+        """Return connection status."""
+        return self._connected
+
+    @connected.setter
+    def connected(self, val: bool) -> None:
+        """Set connection status."""
+        self._connected = val
+
     @staticmethod
     def asyncua_wrapper(
         func: Callable[..., Any],
@@ -199,23 +210,39 @@ class OpcuaHub:
 
         @functools.wraps(func)
         async def get_set_wrapper(self, *args: Any, **kwargs: Any) -> Any:
+            data = {}
             try:
                 start_time = time.perf_counter()
                 async with self.client:
                     data = await func(self, *args, **kwargs)
                     self.packet_count += 1
                     self.elapsed_time = time.perf_counter() - start_time
-                return data
+                    self.connected = True
             except RuntimeError as e:
-                _LOGGER.error(f"Runtime error: {e}")
-            except (asyncio.TimeoutError, TimeoutError) as e:
-                raise ConfigEntryNotReady(
-                    f"Timeout while connecting to {self.hub_name} {self.hub_url}"
-                ) from e
+                _LOGGER.error(
+                    "RuntimeError while connecting to %s @ %s: %s",
+                    self.hub_name,
+                    self.hub_url,
+                    e,
+                )
+                self.connected = False
+            except TimeoutError as e:
+                _LOGGER.error(
+                    "Timeout while connecting to %s @ %s: %s",
+                    self.hub_name,
+                    self.hub_url,
+                    e,
+                )
+                self.connected = False
             except ConnectionRefusedError as e:
-                raise ConfigEntryAuthFailed(
-                    f"Authentication failed while connecting to {self.hub_name}"
-                ) from e
+                _LOGGER.error(
+                    "Connection Refused Error while connecting to %s @ %s: %s",
+                    self.hub_name,
+                    self.hub_url,
+                    e,
+                )
+                self.connected = False
+            return data
 
         return get_set_wrapper
 
@@ -226,7 +253,7 @@ class OpcuaHub:
         return await node.read_value()
 
     @asyncua_wrapper
-    async def get_values(self, node_key_pair: dict[str, str]) -> Union[dict, None]:
+    async def get_values(self, node_key_pair: dict[str, str]) -> dict | None:
         """Get multiple node values and return value in zip dictionary format."""
         if not (node_key_pair):
             return {}
@@ -234,16 +261,19 @@ class OpcuaHub:
             self.client.get_node(nodeid=nodeid) for key, nodeid in node_key_pair.items()
         ]
         vals = await self.client.read_values(nodes=nodes)
-        return dict(zip(node_key_pair.keys(), vals, strict=True))
+        self.cache_val = dict(zip(node_key_pair.keys(), vals, strict=True))
+        return self.cache_val
 
     @asyncua_wrapper
     async def set_value(self, nodeid: str, value: Any) -> bool:
         """Get node variant type automatically and set the value."""
         node = self.client.get_node(nodeid=nodeid)
         node_type = await node.read_data_type_as_variant_type()
-        var = ua_utils.string_to_variant(
-            string=str(value),
-            vtype=node_type,
+        var = ua.Variant(
+            ua_utils.string_to_variant(
+                string=str(value),
+                vtype=node_type,
+            )
         )
         await node.write_value(DataValue(var))
         return True
@@ -289,12 +319,12 @@ class AsyncuaCoordinator(DataUpdateCoordinator):
         """Add new sensors to the sensor list."""
         self._sensors.extend(sensors)
         for _idx_sensor, val_sensor in enumerate(self._sensors):
-            self._node_key_pair[val_sensor[CONF_NODE_NAME]] = str(
-                val_sensor[CONF_NODE_ID]
-            )
+            self._node_key_pair[val_sensor[CONF_NODE_NAME]] = val_sensor[CONF_NODE_ID]
         return True
 
-    async def _async_update_data(self) -> Union[dict[str, Any], None]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Update the state of the sensor."""
         vals = await self.hub.get_values(node_key_pair=self.node_key_pair)
+        if not self.hub.connected:
+            return {}
         return {**vals} if vals is not None else {}

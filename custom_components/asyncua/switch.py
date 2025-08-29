@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import logging
-import voluptuous as vol
-
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
-from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
-from homeassistant.const import STATE_ON, STATE_OFF
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.const import STATE_OFF, STATE_UNAVAILABLE, STATE_OK
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -110,8 +109,8 @@ class AsyncuaSwitch(SwitchEntity, CoordinatorEntity[AsyncuaCoordinator]):
         self._attr_unique_id = (
             unique_id if unique_id is not None else f"{DOMAIN}.{hub}.{node_id}"
         )
-        self._attr_available = STATE_OFF
-        self._available = STATE_OFF
+        self._attr_available = STATE_UNAVAILABLE
+        self._available = STATE_UNAVAILABLE
         self._attr_device_class = SwitchDeviceClass.SWITCH
         self._attr_is_on: bool | None
         self._hub = hub
@@ -126,7 +125,18 @@ class AsyncuaSwitch(SwitchEntity, CoordinatorEntity[AsyncuaCoordinator]):
 
     @property
     def is_on(self) -> bool | None:
-        """Return true if the switch is on."""
+        """Check if OPCUA connection is available, set availability state to unavailable on connection error."""
+        if not self.coordinator.hub.connected:
+            self._attr_is_on = None
+            self._attr_available = STATE_UNAVAILABLE
+            self._available = STATE_UNAVAILABLE
+            return self._attr_is_on
+        # Return node state and set availability to OK
+        self._attr_is_on = self.coordinator.hub.cache_val.get(
+            self._attr_unique_id, None
+        )
+        self._attr_available = STATE_OK
+        self._available = STATE_OK
         return self._attr_is_on
 
     async def async_init(self) -> None:
