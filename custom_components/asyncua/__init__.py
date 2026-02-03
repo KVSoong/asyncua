@@ -126,7 +126,7 @@ async def async_setup(
                 ),
             ),
         )
-        await hass.data[DOMAIN][hub[CONF_HUB_ID]].async_config_entry_first_refresh()
+        await hass.data[DOMAIN][hub[CONF_HUB_ID]].async_request_refresh()
         hass.services.async_register(
             domain=DOMAIN,
             service=f"{SERVICE_SET_VALUE}",
