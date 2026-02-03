@@ -18,6 +18,8 @@ from homeassistant.helpers.typing import (
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from decimal import Decimal
+
 from . import AsyncuaCoordinator
 from .const import (
     CONF_NODE_DEVICE_CLASS,
@@ -94,6 +96,7 @@ async def async_setup_platform(
                     node_id=val_sensor[CONF_NODE_ID],
                     device_class=val_sensor.get(CONF_NODE_DEVICE_CLASS),
                     unit_of_measurement=val_sensor.get(CONF_NODE_UNIT_OF_MEASUREMENT),
+                    state_class=val_sensor.get(CONF_NODE_STATE_CLASS),
                 )
             )
     async_add_entities(new_entities=asyncua_sensors)
@@ -157,7 +160,20 @@ class AsyncuaSensor(CoordinatorEntity[AsyncuaCoordinator], SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle update of the data."""
-        self._attr_native_value = self._parse_coordinator_data(
+        value = self._parse_coordinator_data(
             coordinator_data=self.coordinator.data,
         )
+    
+        self._attr_native_value = value
+    
+        # Home Assistant: si state_class != None, le sensor est supposé numérique
+        # Donc on retire state_class/precision dès que la valeur n'est pas numérique.
+        if isinstance(value, (int, float, Decimal)):
+            # on garde la config existante
+            pass
+        else:
+            self._attr_state_class = None
+            self._attr_suggested_display_precision = None
+    
         self.async_write_ha_state()
+
