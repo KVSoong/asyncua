@@ -9,7 +9,7 @@
   "integration_type": "helper",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/KVSoong/asyncua/issues",
-  "requirements": ["asyncua==1.0.2"],
+  "requirements": ["asyncua==1.2b1"],
   "ssdp": [],
   "version": "v0.1.2",
   "zeroconf": []
